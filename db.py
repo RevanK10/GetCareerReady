@@ -3,6 +3,7 @@ from contextlib import contextmanager
 
 DB_PATH = "careerready.db"
 STATUSES = ["Saved", "Applied", "Interviewing", "Offer", "Rejected"]
+PROFILE_FIELDS = ["full_name", "email", "phone", "location", "links", "resume_text"]
 
 
 @contextmanager
@@ -28,6 +29,39 @@ def init_db():
                    status TEXT NOT NULL DEFAULT 'Saved',
                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
                )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS profile (
+                   id INTEGER PRIMARY KEY CHECK (id = 1),
+                   full_name TEXT DEFAULT '',
+                   email TEXT DEFAULT '',
+                   phone TEXT DEFAULT '',
+                   location TEXT DEFAULT '',
+                   links TEXT DEFAULT '',
+                   resume_text TEXT DEFAULT ''
+               )"""
+        )
+
+
+def get_profile():
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM profile WHERE id = 1").fetchone()
+    data = {f: "" for f in PROFILE_FIELDS}
+    if row:
+        data.update({f: row[f] or "" for f in PROFILE_FIELDS})
+    return data
+
+
+def save_profile(data):
+    values = [str(data.get(f, "")) for f in PROFILE_FIELDS]
+    cols = ", ".join(PROFILE_FIELDS)
+    marks = ", ".join("?" for _ in PROFILE_FIELDS)
+    updates = ", ".join(f"{f} = excluded.{f}" for f in PROFILE_FIELDS)
+    with connect() as conn:
+        conn.execute(
+            f"INSERT INTO profile (id, {cols}) VALUES (1, {marks}) "
+            f"ON CONFLICT(id) DO UPDATE SET {updates}",
+            values,
         )
 
 

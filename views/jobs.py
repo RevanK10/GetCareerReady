@@ -4,6 +4,7 @@ import db
 from fit import analyze_fit
 from tailor import tailor_resume
 from cover import write_cover_letter
+from scraper import scrape_job
 
 st.title("Jobs")
 
@@ -32,7 +33,18 @@ def run(label, key, func, *args):
         st.error(str(e))
 
 
-job = st.text_area("Paste the job description", height=200)
+url = st.text_input("Job URL (optional)")
+if st.button("Fetch from URL"):
+    if not url.strip():
+        st.error("Paste a URL first.")
+    else:
+        try:
+            with st.spinner("Fetching the page..."):
+                st.session_state["job_text"] = scrape_job(url.strip())
+        except RuntimeError as e:
+            st.error(str(e))
+
+job = st.text_area("Job description", height=200, key="job_text")
 
 col1, col2, col3 = st.columns(3)
 analyze_clicked = col1.button("Analyze fit")

@@ -3,6 +3,16 @@ from contextlib import contextmanager
 
 DB_PATH = "careerready.db"
 STATUSES = ["Saved", "Applied", "Interviewing", "Offer", "Rejected"]
+JOB_FIELDS = ["url", "title", "company", "description", "score", "status",
+              "fit_json", "resume_md", "resume_notes", "cover_letter", "error"]
+JOB_EXTRA_COLUMNS = {
+    "url": "TEXT DEFAULT ''",
+    "fit_json": "TEXT DEFAULT ''",
+    "resume_md": "TEXT DEFAULT ''",
+    "resume_notes": "TEXT DEFAULT ''",
+    "cover_letter": "TEXT DEFAULT ''",
+    "error": "TEXT DEFAULT ''",
+}
 PROFILE_FIELDS = ["full_name", "email", "phone", "location", "links", "resume_text"]
 
 
@@ -41,7 +51,24 @@ def init_db():
                    resume_text TEXT DEFAULT ''
                )"""
         )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS events (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   job_id INTEGER NOT NULL,
+                   step TEXT,
+                   status TEXT,
+                   message TEXT DEFAULT '',
+                   created_at TEXT DEFAULT CURRENT_TIMESTAMP
+               )"""
+        )
+        _ensure_columns(conn, "jobs", JOB_EXTRA_COLUMNS)
 
+def _ensure_columns(conn, table, columns):
+    """Add any missing columns, so an older database file keeps working."""
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    for name, definition in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
 
 def get_profile():
     with connect() as conn:
@@ -87,4 +114,46 @@ def update_status(job_id, status):
 
 def delete_job(job_id):
     with connect() as conn:
+        conn.execute("DELETE FROM events WHERE job_id = ?", (job_id,))
         conn.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+
+
+def create_job(url="", description=""):
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO jobs (url, description) VALUES (?, ?)", (url, description)
+        )
+        return cur.lastrowid
+
+
+def get_job(job_id):
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def update_job(job_id, **fields):
+    unknown = set(fields) - set(JOB_FIELDS)
+    if unknown:
+        raise ValueError(f"Unknown job fields: {sorted(unknown)}")
+    if not fields:
+        return
+    sets = ", ".join(f"{name} = ?" for name in fields)
+    with connect() as conn:
+        conn.execute(f"UPDATE jobs SET {sets} WHERE id = ?", [*fields.values(), job_id])
+
+
+def add_event(job_id, step, status, message=""):
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO events (job_id, step, status, message) VALUES (?, ?, ?, ?)",
+            (job_id, step, status, message),
+        )
+
+
+def list_events(job_id, limit=30):
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM events WHERE job_id = ? ORDER BY id DESC LIMIT ?", (job_id, limit)
+        ).fetchall()
+    return [dict(r) for r in reversed(rows)]

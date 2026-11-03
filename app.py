@@ -7,6 +7,7 @@ db.init_db()
 
 pages = [
     st.Page("views/jobs.py", title="Jobs", default=True),
+    st.Page("views/interview.py", title="Interview"),
     st.Page("views/profile.py", title="Profile"),
 ]
 st.navigation(pages).run()

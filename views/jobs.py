@@ -112,6 +112,14 @@ for j in jobs:
 
         with resume_tab:
             if j["resume_md"]:
+                review = json.loads(j["review_json"]) if j["review_json"] else None
+                if review is None or not review["checked"]:
+                    st.caption("Not fact-checked.")
+                elif review["issues"]:
+                    st.warning("The reviewer still flags these claims. Check them against your "
+                               "resume before using this: " + "; ".join(review["issues"]))
+                else:
+                    st.caption(f"Fact-check: no unsupported claims found (round {review['rounds']}).")
                 st.markdown(j["resume_md"])
                 if j["resume_notes"]:
                     st.markdown("**What changed**")

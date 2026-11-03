@@ -1,6 +1,6 @@
 import json
 import time
-
+from review import review_resume
 import db
 from cover import write_cover_letter
 from fit import analyze_fit
@@ -8,6 +8,7 @@ from scraper import ScrapeError, scrape_job
 from tailor import tailor_resume
 
 MAX_ATTEMPTS = 2
+MAX_REVISIONS = 2
 RETRY_DELAY = 2
 
 
@@ -29,9 +30,31 @@ def step_fit(job, profile):
     return updates
 
 
+def _tailor_result(out, checked, issues, rounds):
+    review = {"checked": checked, "issues": issues, "rounds": rounds}
+    return {
+        "resume_md": out["resume"],
+        "resume_notes": out["notes"],
+        "review_json": json.dumps(review),
+    }
+
+
 def step_tailor(job, profile):
-    out = tailor_resume(profile["resume_text"], job["description"])
-    return {"resume_md": out["resume"], "resume_notes": out["notes"]}
+    """Write the resume, have it fact-checked, and rewrite it if the reviewer finds problems."""
+    feedback = None
+    for round_no in range(1, MAX_REVISIONS + 2):
+        out = tailor_resume(profile["resume_text"], job["description"], feedback)
+        try:
+            issues = review_resume(profile["resume_text"], out["resume"])["issues"]
+        except RuntimeError as e:
+            db.add_event(job["id"], "review", "skipped", str(e))
+            return _tailor_result(out, False, [], round_no)
+        if not issues:
+            db.add_event(job["id"], "review", "passed", f"round {round_no}")
+            return _tailor_result(out, True, [], round_no)
+        db.add_event(job["id"], "review", "flagged", "; ".join(issues))
+        feedback = issues
+    return _tailor_result(out, True, issues, round_no)  # keep the last version, but show the issues
 
 
 def step_cover(job, profile):

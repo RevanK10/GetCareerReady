@@ -60,3 +60,18 @@ RESUME
 JOB: {title} at {company}
 {job_description}
 """
+
+REVIEW_PROMPT = """You are a strict fact-checker. Compare a tailored resume against the original resume.
+
+List every claim in the TAILORED resume that the ORIGINAL does not support: employers, job titles, dates, degrees, numbers and metrics, tools and skills, certifications. Rewording is fine. Only flag things that are new or changed in substance.
+
+Return only JSON in this form:
+{{"issues": ["short description of each unsupported claim"]}}
+Use an empty list if everything is supported.
+
+ORIGINAL RESUME
+{original}
+
+TAILORED RESUME
+{tailored}
+"""

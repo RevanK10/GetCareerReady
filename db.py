@@ -4,7 +4,7 @@ from contextlib import contextmanager
 DB_PATH = "careerready.db"
 STATUSES = ["Saved", "Applied", "Interviewing", "Offer", "Rejected"]
 JOB_FIELDS = ["url", "title", "company", "description", "score", "status",
-              "fit_json", "resume_md", "resume_notes", "cover_letter", "error"]
+              "fit_json", "resume_md", "resume_notes", "review_json", "cover_letter", "error"]
 JOB_EXTRA_COLUMNS = {
     "url": "TEXT DEFAULT ''",
     "fit_json": "TEXT DEFAULT ''",
@@ -12,6 +12,7 @@ JOB_EXTRA_COLUMNS = {
     "resume_notes": "TEXT DEFAULT ''",
     "cover_letter": "TEXT DEFAULT ''",
     "error": "TEXT DEFAULT ''",
+    "review_json": "TEXT DEFAULT ''",
 }
 PROFILE_FIELDS = ["full_name", "email", "phone", "location", "links", "resume_text"]
 

@@ -1,8 +1,9 @@
 import json
-
 import streamlit as st
-
 import db
+import pipeline
+import re
+import documents
 import pipeline
 
 st.title("Jobs")
@@ -33,6 +34,30 @@ def queue(job_id, step=None):
 
 def set_status(job_id):
     db.update_status(job_id, st.session_state[f"status_{job_id}"])
+
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+@st.cache_data
+def make_file(kind, fmt, text):
+    return documents.build(kind, fmt, text)
+
+
+def file_stem(job):
+    name = job["company"] or job["title"] or f"job{job['id']}"
+    return re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_") or f"job{job['id']}"
+
+
+def download_row(job, kind, text, raw_ext):
+    stem = f"{kind}_{file_stem(job)}"
+    key = f"{kind}_{job['id']}"
+    c1, c2, c3 = st.columns(3)
+    c1.download_button("Word (.docx)", make_file(kind, "docx", text),
+                       file_name=f"{stem}.docx", mime=DOCX_MIME, key=f"{key}_docx")
+    c2.download_button("PDF", make_file(kind, "pdf", text),
+                       file_name=f"{stem}.pdf", mime="application/pdf", key=f"{key}_pdf")
+    c3.download_button(f"Text (.{raw_ext})", text,
+                       file_name=f"{stem}.{raw_ext}", key=f"{key}_raw")
 
 
 def run_with_progress(job_id):
@@ -124,16 +149,14 @@ for j in jobs:
                 if j["resume_notes"]:
                     st.markdown("**What changed**")
                     st.markdown(j["resume_notes"])
-                st.download_button("Download .md", j["resume_md"],
-                                   file_name=f"resume_{j['id']}.md", key=f"dlr_{j['id']}")
+                    download_row(j, "resume", j["resume_md"], "md")
             else:
                 st.caption("Not run yet.")
 
         with cover_tab:
             if j["cover_letter"]:
                 st.code(j["cover_letter"], language=None, wrap_lines=True)
-                st.download_button("Download .txt", j["cover_letter"],
-                                   file_name=f"cover_letter_{j['id']}.txt", key=f"dlc_{j['id']}")
+                download_row(j, "letter", j["cover_letter"], "txt")
             else:
                 st.caption("Not run yet.")
 

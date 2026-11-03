@@ -72,7 +72,7 @@ STEPS = [
 # What to blank out so a step runs again.
 CLEARS = {
     "fit": {"fit_json": "", "score": None},
-    "tailor": {"resume_md": "", "resume_notes": ""},
+    "tailor": {"resume_md": "", "resume_notes": "", "review_json": ""},
     "cover": {"cover_letter": ""},
 }
 

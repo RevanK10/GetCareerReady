@@ -1,12 +1,11 @@
 from llm_client import LLMClient
-from prompts import NOTES_MARKER, RESUME_PROMPT
+from prompts import NOTES_MARKER, RESUME_TAILOR_PROMPT
 
 
 def tailor_resume(resume_text, job_description, feedback=None):
-    prompt = RESUME_PROMPT.format(
+    prompt = RESUME_TAILOR_PROMPT.format(
         resume_text=resume_text,
         job_description=job_description,
-        marker=NOTES_MARKER,
     )
     if feedback:
         problems = "\n".join(f"- {item}" for item in feedback)

@@ -58,7 +58,9 @@ def step_tailor(job, profile):
 
 
 def step_cover(job, profile):
-    letter = write_cover_letter(profile["resume_text"], job["description"], profile["full_name"])
+    letter = write_cover_letter(
+        profile["resume_text"], job["description"], profile["full_name"], job["title"], job["company"]
+    )
     return {"cover_letter": letter}
 
 
